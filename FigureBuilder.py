@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 frame_rate = 30  # Частота кадров
 number_of_lanes = 3  # Количество полос
 detectors_per_lane = 4  # Количество детекторов на полосу
-time_slice = 10  # Интервал времени в сек. для интенсивности
+time_slice = 20  # Интервал времени в сек. для интенсивности
 lanes = []  # Список полос
 detectors = []  # Список детекторов на одну полосу
 density_per_lane = []  # Список значений плотности на полосу
@@ -18,25 +18,6 @@ detections_per_lanes = []  # Активации детекторов всех п
 intensity_per_lane = []  # Список значений интенсивности для полосы
 intensity_per_lanes = []  # Список значений интенсивности для полос
 
-
-########################################################################################################################
-# Перевод плотности в секунды
-def density_to_sec(density_lanes):
-    for lane in density_lanes:
-        frame_counter = 0
-        seconds = 1
-        while frame_counter <= len(lane):
-            frame_sum = 0
-            for i in range(frame_rate * (seconds - 1), frame_rate * seconds):
-                if i < len(lane):
-                    frame_sum += lane[i]
-                frame_counter += 1
-            density_per_lane_sec.append(frame_sum / frame_rate)
-            seconds += 1
-        density_lanes_sec.append(density_per_lane_sec.copy())
-        density_per_lane_sec.clear()
-
-
 ########################################################################################################################
 # Класс Детектор
 class Detector:
@@ -46,7 +27,6 @@ class Detector:
         self.detY = 0
         self.avgColour = []
         self.detections = []
-
 
 ########################################################################################################################
 # Добавляем пустые детекторы на полосы
@@ -95,9 +75,37 @@ for i in range(len(lanes)):
     density_per_lane.clear()
 
 ########################################################################################################################
-# Построение графиков плотности по секундам
-density_to_sec(density_lanes)
+# Перевод плотности в секунды
+def density_to_sec(density_lanes):
+    for lane in density_lanes:
+        frame_counter = 0
+        seconds = 1
+        while frame_counter <= len(lane):
+            frame_sum = 0
+            for i in range(frame_rate * (seconds - 1), frame_rate * seconds):
+                if i < len(lane):
+                    frame_sum += lane[i]
+                frame_counter += 1
+            density_per_lane_sec.append(frame_sum / frame_rate)
+            seconds += 1
+        density_lanes_sec.append(density_per_lane_sec.copy())
+        density_per_lane_sec.clear()
 
+
+########################################################################################################################
+# Заполняем csv файл значениями плотности для каждой полосы
+density_to_sec(density_lanes)
+data = dict()
+lane_counter = 1
+for lane in density_lanes_sec:
+    new_dict = {"lane" + str(lane_counter): lane}
+    data.update(new_dict)
+    lane_counter += 1
+df = pd.DataFrame(data)
+df.to_csv(r'Density.csv', sep=';', index=False)
+
+########################################################################################################################
+# Построение графиков плотности по секундам
 x = []
 for i in range(0, len(density_lanes_sec[0])):
     x.append(i)
@@ -122,7 +130,8 @@ for lane in lanes:
             j = 0
             while (i < len(detector.detections)) and (j < frame_rate * time_slice):
                 if (i + j < len(detector.detections)) and (detector.detections[i + j] == 1):
-                    while (i + j < len(detector.detections)) and (j < frame_rate * time_slice) and (detector.detections[i + j]) == 1:
+                    while (i + j < len(detector.detections)) and (j < frame_rate * time_slice) and (
+                            detector.detections[i + j]) == 1:
                         j += 1
                     detections_counter += 1
                 else:
@@ -134,13 +143,25 @@ for lane in lanes:
     detections_per_lane.clear()
 
 ########################################################################################################################
+# Заполняем csv файл активациями детекторов за time_slice
+data = dict()
+lane_counter = 1
+for lane in detections_per_lanes:
+    detectorNumber = 1
+    for detector in lane:
+        new_dict = {"lane" + str(lane_counter) + " det" + str(detectorNumber): detector}
+        data.update(new_dict)
+        detectorNumber += 1
+    lane_counter += 1
+df = pd.DataFrame(data)
+df.to_csv(r'Intensity.csv', sep=';', index=False)
+########################################################################################################################
 # Подсчет среднего количества активаций на полосу за time_slice
 for lane in detections_per_lanes:
     avg_detections = 0
     for detections in lane:
         avg_detections += sum(detections)
         avg_detections /= len(lane)
-
 
 detections_counter = 0
 for i in range(len(detections_per_lanes)):
@@ -157,7 +178,7 @@ for i in range(len(detections_per_lanes)):
 # Построение графиков интенсивности по секундам
 
 x = []
-for i in range(1, len(intensity_per_lanes[0])+1):
+for i in range(1, len(intensity_per_lanes[0]) + 1):
     x.append(i)
 
 fig, axs = plt.subplots(3)
