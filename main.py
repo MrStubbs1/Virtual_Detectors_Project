@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
+
 ########################################################################################################################
 # Класс Детектор
 
@@ -93,7 +94,7 @@ def get_avg_colour_sum(gray, detectors):
         avg_color = np.average(avg_color_per_row, axis=0)  # считаем средний цвет для средних цветов по горизонтали
         # Добавляем значение среднего цвета для детектора
         detector.add_avg_colour_sum(avg_color)
-        #print(avg_color)  # Выводм значение среднего цвета для детектора в консоль
+        # print(avg_color)  # Выводм значение среднего цвета для детектора в консоль
 
         # Отображаем окно для проверки детектора
         show = False
@@ -113,7 +114,7 @@ def draw_detector(x, y, lane_number):
 
 ########################################################################################################################
 # Установка детектора
-def set_detector(event, x, y, flags, param, count_of_lanes=0):
+def set_detector(event, x, y):
     global mouseX, mouseY, drawing
 
     # Если нажата левая кнопка мыши
@@ -142,6 +143,7 @@ def set_detector(event, x, y, flags, param, count_of_lanes=0):
 
 ########################################################################################################################
 # Открытие видео
+
 cap = cv.VideoCapture('test.mp4')  # Видеофайл для обработки
 
 # Проверка открытия файла
@@ -151,7 +153,7 @@ if not cap.isOpened():
 ########################################################################################################################
 # Отображение и расстановка детекторов для первого кадра
 
-set_detectors = False # Будет ли ручная расстановка детекторов
+set_detectors = False  # Будет ли ручная расстановка детекторов
 
 if set_detectors:
     # Создание окна для отображения первого кадра
@@ -174,19 +176,27 @@ else:
         coordinates = df.values[i][0].split(';')
 
     coordinates_counter = 0
-    for i in range(0, number_of_lanes*detectors_per_lane):
+    for i in range(0, number_of_lanes * detectors_per_lane):
         if len(detectors) < detectors_per_lane:
             detectors.append(Detector(int(coordinates[coordinates_counter]), int(coordinates[coordinates_counter + 1])))
             coordinates_counter += 2
         if len(detectors) == detectors_per_lane:
             lanes.append(detectors.copy())
-        # Очищаем текущий список детекторов
+            # Очищаем текущий список детекторов
             detectors.clear()
 
 ########################################################################################################################
 
+# Получаем список всех файлов в папке
 video_path = 'Videos/'
-videos = os.listdir(video_path)
+files = os.listdir(video_path)
+videos = []
+
+# Добавляем в список только файлы с нужным расширением
+for file in files:
+    if file.endswith(".mp4"):
+        videos.add(file)
+
 
 # Обработка видео
 cv.namedWindow('Frame', cv.WINDOW_NORMAL)
@@ -234,7 +244,6 @@ for video in videos:
     # Освобождаем видео и удаляем все окна
     cap.release()
     cv.destroyAllWindows()
-
 
 ########################################################################################################################
 # Заполняем csv файл координатами детекторов
